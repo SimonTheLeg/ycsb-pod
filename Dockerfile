@@ -1,20 +1,19 @@
-FROM alpine:3.7 
+FROM openjdk:8-jdk-alpine3.7
 
 LABEL maintainer="simon@codeconductor.io"
 
-ENV YCSB_VERSION "0.14.0"
+# Required YCSB Database bindings, separated by spaces
+ENV REQ_YCSB_BINDS "com.yahoo.ycsb:elasticsearch-binding"
 
+# NOTE: Python is needed at the moment due to this bug https://github.com/brianfrankcooper/YCSB/issues/1105
 RUN apk add --update \
+      maven \
+      git \
       bash \
-      curl \
-      openjdk8-jre \
+      python \
     && rm -rf /var/cache/apk/* \
-    && curl -o ycsb.tar.gz -L "https://github.com/brianfrankcooper/YCSB/releases/download/${YCSB_VERSION}/ycsb-${YCSB_VERSION}.tar.gz" \
-    && mkdir ycsb \
-    && tar xfz ycsb.tar.gz -C ycsb --strip-components 1 \
-    && rm -rf ycsb.tar.gz
+    && git clone --progress https://github.com/brianfrankcooper/YCSB.git \
+    && cd YCSB \
+    && mvn -pl ${REQ_YCSB_BINDS} -am clean package
 
-WORKDIR ycsb
-
-# Keep alive forever; tail was used since alpine does not have sleep infinity
-CMD [ "tail", "-f", "/dev/null"]
+WORKDIR YCSB
